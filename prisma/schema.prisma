@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String      @id @default(uuid())
+  username            String?     @unique
+  password            String
+  createdAt           DateTime?
+  firstName           String
+  lastName            String?
+  profile             String?
+  banner              String?
+  phoneNumber         String      @unique
+  email               String?     @unique
+  bio                 String?
+  isAdmin             Boolean     @default(false)
+  createdCommunities  Community[] @relation("creator")
+  followedCommunities Community[] @relation("followers")
+  bookedTrips         Trip[]      @relation("bookedUsers")
+  sharedTrips         Trip[]      @relation("sharedUser")
+  managedCommunities  Community[] @relation("manager")
+  deletedStatus       Boolean     @default(false)
+  organizedTrips      Trip[]      @relation("organizerUserTrips")
+  createdDate         DateTime    @default(now())
+  updatedDate         DateTime    @updatedAt
+
+  @@map("users")
+}
+
+model Community {
+  id                String   @id @default(uuid())
+  name              String
+  communityUsername String?  @unique
+  profile           String?
+  banner            String?
+  bio               String?
+  contactNumber     String?
+  creator           User     @relation(fields: [creatorId], references: [id], name: "creator")
+  managers          User[]   @relation("manager")
+  bankAccounts      Bank[]
+  creatorId         String
+  organizedTrips    Trip[]   @relation("createdTrips")
+  followers         User[]   @relation("followers")
+  sharedTrips       Trip[]   @relation("sharedCommunity")
+  deletedStatus     Boolean  @default(false)
+  createdDate       DateTime @default(now())
+  updatedDate       DateTime @updatedAt
+
+  @@map("communities")
+}
+
+model Bank {
+  id          String    @id @default(uuid())
+  number      String
+  name        String
+  community   Community @relation(fields: [communityId], references: [id])
+  communityId String
+
+  @@map("banks")
+}
+
+model Trip {
+  id                  String      @id @default(uuid())
+  image               String[]
+  startDate           DateTime
+  endDate             DateTime
+  departure           DateTime
+  return              DateTime
+  name                String
+  description         String?
+  destination         String
+  price               Float
+  meetUpLocation      String
+  packageIncludes     String[]
+  activities          String[]
+  organizer           Community   @relation(fields: [organizerId], references: [id], name: "createdTrips")
+  organizer_user      User        @relation(fields: [organizerUserId], references: [id], name: "organizerUserTrips")
+  categoryId          String
+  category            Category    @relation(fields: [categoryId], references: [id])
+  discounted          Boolean     @default(false)
+  discountAmount      Float?
+  organizerId         String
+  organizerUserId     String
+  bookedBy            User[]      @relation("bookedUsers")
+  sharedByCommunities Community[] @relation("sharedCommunity")
+  sharedByUsers       User[]      @relation("sharedUser")
+  deletedStatus       Boolean     @default(false)
+  createdDate         DateTime    @default(now())
+  updatedDate         DateTime    @updatedAt
+
+  @@map("trips")
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  trip        Trip[]
+  createdDate DateTime @default(now())
+  updatedDate DateTime @updatedAt
+
+  @@map("categories")
+}
