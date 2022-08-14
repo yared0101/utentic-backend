@@ -1,4 +1,6 @@
-const { hash } = require("bcrypt");
+const { hash, compare } = require("bcrypt");
+const e = require("express");
+const { sign } = require("jsonwebtoken");
 const { prisma } = require("../config");
 const { VALIDATION_TYPE } = require("../config/constants");
 const { getOneUser, updateUser } = require("../services/user.services");
@@ -14,53 +16,64 @@ class UserController {
      * @returns
      */
     login = async (req, res, next) => {
-        if (!req.body.username && !req.body.email && !req.body.phoneNumber) {
-            return error(
-                "identifier",
-                "please send username email or phone number",
-                next
+        try {
+            if (
+                !req.body.username &&
+                !req.body.email &&
+                !req.body.phoneNumber
+            ) {
+                return error(
+                    "identifier",
+                    "please send username email or phone number",
+                    next
+                );
+            }
+            if (!req.body.password) {
+                return error("password", "password can't be empty", next);
+            }
+            const { username, email, phoneNumber, password, keepMeLoggedIn } =
+                req.body;
+            const identifier = [
+                { value: username, key: "username" },
+                { value: email, key: "email" },
+                { value: phoneNumber, key: "phoneNumber" },
+            ].find((elem) => elem.value);
+            const queryResult = await prisma.user.findUnique({
+                where: { [identifier.key]: identifier.value },
+                select: {
+                    password: true,
+                    id: true,
+                },
+            });
+            const key = identifier.key;
+            if (!queryResult) {
+                return error(key, "Invalid credentials", next);
+            }
+            if (queryResult.deleted_status) {
+                return error(key, "account has been deleted", next);
+            }
+            const correctPassword = await compare(
+                password,
+                queryResult.password
             );
-        }
-        if (!req.body.password) {
-            return error("password", "password can't be empty", next);
-        }
-        const { username, email, phoneNumber, password, keepMeLoggedIn } =
-            req.body;
-        const identifier = [
-            { value: username, key: "username" },
-            { value: email, key: "email" },
-            { value: phoneNumber, key: "phoneNumber" },
-        ].find((elem) => elem.value);
-        console.log(await user.findMany());
-        const queryResult = await prisma.user.findUnique({
-            where: { [identifier.key]: identifier.value },
-            select: {
-                password: true,
-                id: true,
-            },
-        });
-        const key = identifier.key;
-        if (!queryResult) {
-            return error(key, "Invalid credentials", next);
-        }
-        if (queryResult.deleted_status) {
-            return error(key, "account has been deleted", next);
-        }
-        const correctPassword = await compare(password, queryResult.password);
-        if (!correctPassword) {
-            return error("password", "Invalid credentials", next);
-        }
-        const accessToken = sign(
-            {
+            if (!correctPassword) {
+                return error("password", "Invalid credentials", next);
+            }
+            const accessToken = sign(
+                {
+                    id: queryResult.id,
+                },
+                process.env.ACCESS_KEY,
+                keepMeLoggedIn ? {} : { expiresIn: "10h" }
+            );
+            return res.json({
+                accessToken,
                 id: queryResult.id,
-            },
-            process.env.ACCESS_KEY,
-            keepMeLoggedIn ? {} : { expiresIn: "10h" }
-        );
-        return res.json({
-            accessToken,
-            id: queryResult.id,
-        });
+            });
+        } catch (e) {
+            console.log(e);
+            return error("server", "login failed please try again", next, 500);
+        }
     };
     /**
      *
@@ -70,54 +83,64 @@ class UserController {
      * @returns
      */
     signUp = async (req, res, next) => {
-        if (!req.body.phoneNumber) {
-            return error("identifier", "please send phone number", next);
-        }
-        if (!req.body.firstName) {
-            return error("identifier", "please send phone number", next);
-        }
-        if (!req.body.password) {
-            return error("password", "password can't be empty", next);
-        }
-        const { phoneNumber, firstName, password } = req.body;
-        const [{ success, message, argument }] = allValidations([
-            {
-                type: VALIDATION_TYPE.PHONE_NUMBER,
-                value: phoneNumber,
-                argument: "phoneNumber",
-            },
-        ]);
-        if (!success) {
-            return error(argument, message, next);
-        }
-        const userExists = await prisma.user.findUnique({
-            where: { phoneNumber },
-        });
-        if (userExists) {
+        try {
+            if (!req.body.phoneNumber) {
+                return error("phoneNumber", "please send phone number", next);
+            }
+            if (!req.body.firstName) {
+                return error("firstName", "please send first name", next);
+            }
+            if (!req.body.password) {
+                return error("password", "password can't be empty", next);
+            }
+            const { phoneNumber, firstName, password } = req.body;
+            const [{ success, message, argument }] = allValidations([
+                {
+                    type: VALIDATION_TYPE.PHONE_NUMBER,
+                    value: phoneNumber,
+                    argument: "phoneNumber",
+                },
+            ]);
+            if (!success) {
+                return error(argument, message, next);
+            }
+            const userExists = await prisma.user.findUnique({
+                where: { phoneNumber },
+            });
+            if (userExists) {
+                return error(
+                    "phoneNumber",
+                    "user with the same phone number already exists",
+                    next
+                );
+            }
+            const newUser = await prisma.user.create({
+                data: {
+                    phoneNumber,
+                    firstName,
+                    password: await hash(password, 10),
+                },
+            });
+            const accessToken = sign(
+                {
+                    id: newUser.id,
+                },
+                process.env.ACCESS_KEY,
+                { expiresIn: "7d" }
+            );
+            return res.json({
+                accessToken,
+                id: newUser.id,
+            });
+        } catch (e) {
+            console.log(e);
             return error(
-                "phoneNumber",
-                "user with the same phone number already exists",
-                next
+                "server",
+                "sign up failed please try again",
+                next,
+                500
             );
         }
-        const newUser = await prisma.user.create({
-            data: {
-                phoneNumber,
-                firstName,
-                password: await hash(password, 10),
-            },
-        });
-        const accessToken = sign(
-            {
-                id: newUser.id,
-            },
-            process.env.ACCESS_KEY,
-            { expiresIn: "7d" }
-        );
-        return res.json({
-            accessToken,
-            id: newUser.id,
-        });
     };
     /**
      *
@@ -130,7 +153,16 @@ class UserController {
         if (!req.body.updateData) {
             return error("updateData", "please send updateData", next);
         }
-        return updateUser(res.locals.id, req.body.updateData, next);
+        const returnVal = await updateUser(
+            res.locals.id,
+            req.body.updateData,
+            next
+        );
+        if (returnVal) {
+            return res.json(returnVal);
+        } else {
+            return returnVal;
+        }
     };
     /**
      *
@@ -147,19 +179,33 @@ class UserController {
             return error("newPassword", "please send new password", next);
         }
         const { password, newPassword } = req.body;
-        const queryResult = res.locals.user;
-        const correctPassword = await compare(password, queryResult.password);
-        if (!correctPassword) {
-            return error("password", "Invalid credentials", next);
+        try {
+            const queryResult = res.locals.user;
+            const correctPassword = await compare(
+                password,
+                queryResult.password
+            );
+            if (!correctPassword) {
+                return error("password", "Invalid credentials", next);
+            }
+            const updatedUser = await prisma.user.update({
+                where: {
+                    id: queryResult.id,
+                },
+                data: {
+                    password: await hash(newPassword, 10),
+                },
+            });
+            return res.json({ success: true, data: updatedUser });
+        } catch (e) {
+            console.log(e);
+            return error(
+                "server",
+                "updating password please try again",
+                next,
+                500
+            );
         }
-        await prisma.user.update({
-            where: {
-                id: queryResult.id,
-            },
-            data: {
-                password: await hash(newPassword, 10),
-            },
-        });
     };
     /**
      *
@@ -176,11 +222,13 @@ class UserController {
                 res.locals.id,
                 false
             );
-            await prisma.user.update({
+            const updatedUser = await prisma.user.update({
                 where: { id: res.locals.id },
                 data: { profile },
             });
+            return res.json({ success: true, data: updatedUser });
         } catch (e) {
+            console.log(e);
             return error("server", "upload failed please try again", next, 500);
         }
     };
@@ -199,10 +247,11 @@ class UserController {
                 res.locals.id,
                 true
             );
-            await prisma.user.update({
+            const updatedUser = await prisma.user.update({
                 where: { id: res.locals.id },
                 data: { banner },
             });
+            return res.json({ success: true, data: updatedUser });
         } catch (e) {
             return error("server", "upload failed please try again", next, 500);
         }
@@ -215,7 +264,12 @@ class UserController {
      * @returns
      */
     getMe = async (req, res, next) => {
-        return getOneUser(res.locals.id, next);
+        const returnVal = await getOneUser(res.locals.id, next);
+        if (returnVal) {
+            return res.json(returnVal);
+        } else {
+            return returnVal;
+        }
     };
     /**
      *
@@ -225,7 +279,12 @@ class UserController {
      * @returns
      */
     getWithId = async (req, res, next) => {
-        return getOneUser(req.params.id, next);
+        const returnVal = await getOneUser(req.params.userId, next);
+        if (returnVal) {
+            return res.json(returnVal);
+        } else {
+            return returnVal;
+        }
     };
     /**
      *
@@ -236,30 +295,30 @@ class UserController {
      */
     getAll = async (req, res, next) => {
         const { communityId, tripId, limit, skip } = req.query;
-        let filterLimit = Number(limit) || null;
-        let filterSkip = Number(skip) || null;
+        let filterLimit = Number(limit) || undefined;
+        let filterSkip = Number(skip) || undefined;
         try {
             const users = await prisma.user.findMany({
                 where: {
-                    followedCommunities: {
-                        some: {
-                            id: communityId | null,
-                        },
-                    },
-                    bookedTrips: {
-                        some: {
-                            id: tripId | null,
-                        },
-                    },
+                    followedCommunities: communityId
+                        ? {
+                              some: {
+                                  id: communityId || undefined,
+                              },
+                          }
+                        : communityId,
+                    bookedTrips: tripId
+                        ? {
+                              some: {
+                                  id: tripId || undefined,
+                              },
+                          }
+                        : undefined,
                 },
+                take: filterLimit,
+                skip: filterSkip,
                 include: {
                     _count: true,
-                    bookedTrips: { select: { _count: true } },
-                    createdCommunities: { select: { _count: true } },
-                    followedCommunities: { select: { _count: true } },
-                    managedCommunities: { select: { _count: true } },
-                    organizedTrips: { select: { _count: true } },
-                    sharedTrips: { select: { _count: true } },
                 },
             });
             return res.json({
@@ -267,6 +326,7 @@ class UserController {
                 data: users,
             });
         } catch (e) {
+            console.log(e);
             return error(
                 "server",
                 "something went wrong in retriving the account informations",
@@ -295,7 +355,7 @@ class UserController {
                     404
                 );
             }
-            await prisma.user.update({
+            const updatedUser = await prisma.user.update({
                 where: {
                     id: res.locals.id,
                 },
@@ -306,6 +366,10 @@ class UserController {
                         },
                     },
                 },
+            });
+            return res.json({
+                success: true,
+                data: updatedUser,
             });
         } catch (e) {
             return error("server", "something went wrong", next, 500);
@@ -355,6 +419,7 @@ class UserController {
                     },
                 },
             });
+            return res.json({ success: true });
         } catch (e) {
             return error("server", "something went wrong", next, 500);
         }
@@ -378,6 +443,7 @@ class UserController {
                 where: { id: res.locals.id },
                 data: { bookedTrips: { connect: { id: trip.id } } },
             });
+            return res.json({ success: true });
         } catch (e) {
             return error("server", "something went wrong", next, 500);
         }
@@ -401,6 +467,7 @@ class UserController {
                 where: { id: res.locals.id },
                 data: { bookedTrips: { disconnect: { id: trip.id } } },
             });
+            return res.json({ success: true });
         } catch (e) {
             return error("server", "something went wrong", next, 500);
         }
@@ -424,6 +491,7 @@ class UserController {
                 where: { id: user.id },
                 data: { deletedStatus: false },
             });
+            return res.json({ success: true });
         } catch (e) {
             return error("server", "something went wrong", next, 500);
         }
@@ -447,6 +515,7 @@ class UserController {
                 where: { id: user.id },
                 data: { deletedStatus: true },
             });
+            return res.json({ success: true });
         } catch (e) {
             return error("server", "something went wrong", next, 500);
         }
@@ -469,6 +538,7 @@ class UserController {
             await prisma.user.delete({
                 where: { id: user.id },
             });
+            return res.json({ success: true });
         } catch (e) {
             return error("server", "something went wrong", next, 500);
         }

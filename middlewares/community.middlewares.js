@@ -38,13 +38,14 @@ const communityManager = async (req, res, next) => {
             404
         );
     }
-    community.creatorId === res.locals.id && next();
     for (let i in community.managers) {
         if (community.managers[i].id === res.locals.id) {
-            next();
+            return next();
         }
     }
-    return error("user", "you are unauthorized for this action", next, 403);
+    return community.creatorId === res.locals.id
+        ? next()
+        : error("user", "you are unauthorized for this action", next, 403);
 };
 /**
  *
@@ -83,7 +84,8 @@ const communityCreator = async (req, res, next) => {
             404
         );
     }
-    community.creatorId === res.locals.id && next();
-    return error("user", "you are unauthorized for this action", next, 403);
+    return community.creatorId === res.locals.id
+        ? next()
+        : error("user", "you are unauthorized for this action", next, 403);
 };
 module.exports = { communityManager, communityCreator };

@@ -28,11 +28,11 @@ const tripManager = async (req, res, next) => {
         );
     }
     if (trip.organizer.creatorId === res.locals.id) {
-        next();
+        return next();
     }
     for (let i in trip.organizer.managers) {
         if (trip.organizer.managers[i].id === res.locals.id) {
-            next();
+            return next();
         }
     }
     return error("user", "you are unauthorized for this action", next, 403);

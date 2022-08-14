@@ -16,6 +16,6 @@ const uploadFile = async (filePath, type, id, isBanner = false) => {
         use_filename: false,
         // use_filename:`${isBanner? "BANNER_":"PROFILE_"}${id}`,
     });
-    return uploadedFile.url;
+    return uploadedFile.secure_url;
 };
 module.exports = { uploadFile };

@@ -25,7 +25,9 @@ const authenticate = async (req, res, next) => {
             401
         );
     }
-    res.locals.user = await prisma.findUnique({ where: { id: payload.id } });
+    res.locals.user = await prisma.user.findUnique({
+        where: { id: payload.id },
+    });
     res.locals.id = payload.id;
     if (!res.locals.user) {
         return error(
@@ -53,7 +55,7 @@ const authenticate = async (req, res, next) => {
  */
 const isAdmin = async (_req, res, next) => {
     if (res.locals.user.isAdmin) {
-        next();
+        return next();
     } else {
         return error(
             "user",
@@ -62,7 +64,6 @@ const isAdmin = async (_req, res, next) => {
             403
         );
     }
-    next();
 };
 /**
  *

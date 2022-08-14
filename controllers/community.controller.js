@@ -13,10 +13,25 @@ class CommunityController {
      * @returns
      */
     newCommunity = async (req, res, next) => {
-        const { name, communityUsername, bio, contactNumber, banks } = req.body;
-        const inputBanks = banks
-            .filter((elem) => elem.name && elem.number)
-            .map((elem) => ({ name: elem.name, number: number }));
+        const {
+            name,
+            communityUsername,
+            bio,
+            contactNumber,
+            bankNames,
+            bankAccounts,
+        } = req.body;
+        const inputBankNames = bankNames?.filter((elem) => elem);
+        const inputBankNumbers = bankAccounts?.filter((elem) => elem);
+        const minIndex =
+            Math.min(inputBankNames?.length, inputBankNumbers?.length) || 0;
+        let inputBanks = [];
+        for (let i = 0; i < minIndex; i++) {
+            inputBanks.push({
+                name: inputBankNames[i],
+                number: inputBankNumbers[i],
+            });
+        }
         if (!name) {
             return error("name", "please send name of your community", next);
         }
@@ -46,12 +61,8 @@ class CommunityController {
         let profile = "",
             banner = "";
         try {
-            const profilePath = req.files.find(
-                (elem) => elem.fieldname === "profile"
-            )?.path;
-            const bannerPath = req.files.find(
-                (elem) => elem.fieldname === "banner"
-            )?.path;
+            const profilePath = req.files?.profile[0]?.path;
+            const bannerPath = req.files?.banner[0]?.path;
             profile = await uploadFile(
                 profilePath,
                 "COMMUNITY",
@@ -84,10 +95,13 @@ class CommunityController {
                     creatorId: res.locals.id,
                     bankAccounts: {
                         createMany: {
-                            data: inputBanks,
+                            data: inputBanks || [],
                             skipDuplicates: true,
                         },
                     },
+                },
+                include: {
+                    bankAccounts: true,
                 },
             });
             return res.json({
@@ -113,27 +127,33 @@ class CommunityController {
     getCommunities = async (req, res, next) => {
         const { creatorId, managerId, tripId, followerId, limit, skip } =
             req.query;
-        let filterLimit = Number(limit) || null;
-        let filterSkip = Number(skip) || null;
+        let filterLimit = Number(limit) || undefined;
+        let filterSkip = Number(skip) || undefined;
         try {
             const communities = await prisma.community.findMany({
                 where: {
-                    creatorId: creatorId | null,
-                    managers: {
-                        some: {
-                            id: managerId | null,
-                        },
-                    },
-                    organizedTrips: {
-                        some: {
-                            id: tripId | null,
-                        },
-                    },
-                    followers: {
-                        some: {
-                            id: followerId | null,
-                        },
-                    },
+                    creatorId: creatorId,
+                    managers: managerId
+                        ? {
+                              some: {
+                                  id: managerId,
+                              },
+                          }
+                        : {},
+                    organizedTrips: tripId
+                        ? {
+                              some: {
+                                  id: tripId,
+                              },
+                          }
+                        : {},
+                    followers: followerId
+                        ? {
+                              some: {
+                                  id: followerId,
+                              },
+                          }
+                        : {},
                 },
                 skip: filterSkip,
                 take: filterLimit,
@@ -141,9 +161,6 @@ class CommunityController {
                     _count: true,
                     bankAccounts: true,
                     creator: true,
-                    followers: { select: { _count: true } },
-                    managers: { select: { _count: true } },
-                    organizedTrips: { select: { _count: true } },
                 },
             });
             return res.json({
@@ -215,8 +232,8 @@ class CommunityController {
         const { name, communityUsername, bio, contactNumber, banks } =
             req.body.updateData;
         const inputBanks = banks
-            .filter((elem) => elem.name && elem.number)
-            .map((elem) => ({ name: elem.name, number: number }));
+            ?.filter((elem) => elem.name && elem.number)
+            ?.map((elem) => ({ name: elem.name, number: elem.number }));
         const communityBeforeUpdate = await prisma.community.findUnique({
             where: {
                 id: req.params.communityId,
@@ -263,13 +280,18 @@ class CommunityController {
                     communityUsername,
                     bio,
                     contactNumber,
-                    bankAccounts: {
-                        deleteMany: {},
-                        createMany: {
-                            data: inputBanks,
-                            skipDuplicates: true,
-                        },
-                    },
+                    bankAccounts: inputBanks
+                        ? {
+                              deleteMany: {},
+                              createMany: {
+                                  data: inputBanks || [],
+                                  skipDuplicates: true,
+                              },
+                          }
+                        : {},
+                },
+                include: {
+                    bankAccounts: true,
                 },
             });
             return res.json({
@@ -280,8 +302,9 @@ class CommunityController {
             console.log(e);
             return error(
                 "server",
-                "internal server error when trying to create community",
-                next
+                "internal server error when trying to update community",
+                next,
+                500
             );
         }
     };
@@ -300,9 +323,13 @@ class CommunityController {
                 res.locals.id,
                 false
             );
-            await prisma.community.update({
+            const community = await prisma.community.update({
                 where: { id: req.params.communityId },
                 data: { profile },
+            });
+            return res.json({
+                success: true,
+                data: community,
             });
         } catch (e) {
             return error("server", "upload failed please try again", next, 500);
@@ -323,9 +350,13 @@ class CommunityController {
                 res.locals.id,
                 true
             );
-            await prisma.community.update({
+            const community = await prisma.community.update({
                 where: { id: req.params.communityId },
                 data: { banner },
+            });
+            return res.json({
+                success: true,
+                data: community,
             });
         } catch (e) {
             return error("server", "upload failed please try again", next, 500);
@@ -383,6 +414,7 @@ class CommunityController {
                 next
             );
         }
+        console.log(managers, managers.length, !managers.length);
         if (!managers.length) {
             return error(
                 "managers",

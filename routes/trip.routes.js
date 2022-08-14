@@ -19,12 +19,7 @@ const upload = multer({ dest: "tempFiles/" });
 router.post("/", authenticate, newTrip);
 router.get("/", authenticate, getTrips); //all trips, apply filters and stuff in the resolver
 router.get("/:tripId", authenticate, getWithId); //a single trip, apply filters and stuff in the resolver
-router.patch(
-    "/update-trip-info/:tripId",
-    authenticate,
-    tripManager,
-    updateTrip
-);
+router.patch("/update-info/:tripId", authenticate, tripManager, updateTrip);
 router.patch(
     "/add-images/:tripId",
     authenticate,

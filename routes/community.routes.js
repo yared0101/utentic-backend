@@ -41,20 +41,20 @@ router.post(
 router.get("/", authenticate, getCommunities); //get all communities
 router.get("/:communityId", authenticate, getWithId); //get a single community
 router.patch(
-    "/update-community-info/:communityId",
+    "/update-info/:communityId",
     authenticate,
     communityManager,
     updateCommunity
 );
 router.patch(
-    "/change-community-profile/:communityId",
+    "/change-profile/:communityId",
     authenticate,
     communityManager,
     upload.single("profile"),
     updateProfile
 );
 router.patch(
-    "/change-community-banner/:communityId",
+    "/change-banner/:communityId",
     authenticate,
     communityManager,
     upload.single("banner"),
@@ -73,7 +73,7 @@ router.post(
     activateCommunity
 );
 router.post(
-    "/add-manager/:communityId",
+    "/add-managers/:communityId",
     authenticate,
     communityCreator,
     addManagers

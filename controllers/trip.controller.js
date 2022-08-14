@@ -72,7 +72,7 @@ class TripController {
                 }
             }
             if (inputFilter[i].validate && req.body[i]) {
-                const [{ success, message, value }] = allValidations([
+                const [{ success, message, value, argument }] = allValidations([
                     {
                         argument: i,
                         type: inputFilter[i].validate,
@@ -138,10 +138,12 @@ class TripController {
             ) {
                 return error(
                     "user",
-                    "you aren't authorized to post trips under this community"
+                    "you aren't authorized to post trips under this community",
+                    next
                 );
             }
             const discounted = Boolean(discountAmount);
+            console.log(startDate, endDate, departure, returnDate);
             const trip = await prisma.trip.create({
                 data: {
                     startDate,
@@ -185,27 +187,29 @@ class TripController {
     getTrips = async (req, res, next) => {
         const { organizerId, categoryId, bookedBy, creatorId, limit, skip } =
             req.query;
-        let filterLimit = Number(limit) || null;
-        let filterSkip = Number(skip) || null;
+        let filterLimit = Number(limit) || undefined;
+        let filterSkip = Number(skip) || undefined;
         try {
             const trips = await prisma.trip.findMany({
                 where: {
-                    organizerId: organizerId || null,
-                    categoryId: categoryId || null,
-                    bookedBy: {
-                        some: {
-                            id: bookedBy || null,
-                        },
-                    },
+                    organizerId: organizerId,
+                    categoryId: categoryId,
+                    bookedBy: bookedBy
+                        ? {
+                              some: {
+                                  id: bookedBy,
+                              },
+                          }
+                        : {},
                     organizerUserId: creatorId,
                 },
                 skip: filterSkip,
                 take: filterLimit,
                 include: {
                     _count: true,
-                    bookedBy: { select: { _count: true } },
                     organizer: true,
                     organizer_user: true,
+                    category: true,
                 },
             });
             return res.json({
@@ -216,7 +220,7 @@ class TripController {
             console.log(e);
             return error(
                 "server",
-                "internal server error while getting communities",
+                "internal server error while getting trips",
                 next
             );
         }
@@ -238,6 +242,7 @@ class TripController {
                     bookedBy: true,
                     organizer: true,
                     organizer_user: true,
+                    category: true,
                 },
             });
             if (!trip) {
@@ -264,6 +269,9 @@ class TripController {
      * @returns
      */
     updateTrip = async (req, res, next) => {
+        if (!req.body.updateData) {
+            return error("updateData", "please send updateData", next);
+        }
         const inputFilter = {
             startDate: { validate: VALIDATION_TYPE.DATE },
             endDate: { validate: VALIDATION_TYPE.DATE },
@@ -280,18 +288,18 @@ class TripController {
             discountAmount: { validate: VALIDATION_TYPE.NUMBER },
         };
         for (let i in inputFilter) {
-            if (inputFilter[i].validate && req.body[i]) {
+            if (inputFilter[i].validate && req.body.updateData[i]) {
                 const [{ success, message, value }] = allValidations([
                     {
                         argument: i,
                         type: inputFilter[i].validate,
-                        value: req.body[i],
+                        value: req.body.updateData[i],
                     },
                 ]);
                 if (!success) {
                     return error(i, message, next);
                 }
-                req.body[i] = value;
+                req.body.updateData[i] = value;
             }
         }
         const {
@@ -307,20 +315,22 @@ class TripController {
             activities,
             categoryId,
             discountAmount,
-        } = req.body;
+        } = req.body.updateData;
         const returnDate = req.body.return;
         try {
-            const category = await prisma.category.findUnique({
-                where: {
-                    id: categoryId,
-                },
-            });
-            if (!category) {
-                return error(
-                    "categoryId",
-                    "no category exists with this id",
-                    next
-                );
+            if (categoryId) {
+                const category = await prisma.category.findUnique({
+                    where: {
+                        id: categoryId,
+                    },
+                });
+                if (!category) {
+                    return error(
+                        "categoryId",
+                        "no category exists with this id",
+                        next
+                    );
+                }
             }
             const discounted = discountAmount === 0;
             const trip = await prisma.trip.update({
@@ -340,7 +350,7 @@ class TripController {
                     activities,
                     categoryId,
                     discountAmount,
-                    discounted: discounted ? false : null,
+                    discounted: discounted ? false : undefined,
                     return: returnDate,
                 },
             });
@@ -352,7 +362,7 @@ class TripController {
             console.log(e);
             return error(
                 "server",
-                "internal server error when trying to create trip",
+                "internal server error when trying to update trip",
                 next
             );
         }
@@ -389,11 +399,7 @@ class TripController {
             });
         } catch (e) {
             console.log(e);
-            return error(
-                "server",
-                "internal server error when trying to create trip",
-                next
-            );
+            return error("server", "upload failed please try again", next);
         }
     };
     /**
@@ -412,6 +418,7 @@ class TripController {
                 },
                 select: {
                     image: true,
+                    id: true,
                 },
             });
             let images = trip.image;

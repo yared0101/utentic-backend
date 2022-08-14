@@ -20,7 +20,7 @@ app.use((err, _req, res, _next) => {
     res.status(status).send({ error: myError });
 });
 
-const port = 4000;
+const port = process.env.PORT || 4000;
 //create .env.example
 if (process.env.NODE_ENV === "development") {
     makeEnvExample();

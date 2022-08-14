@@ -5,6 +5,6 @@ const VALIDATION_TYPE = {
     COMMUNITY_USERNAME: "COMMUNITY_USERNAME",
     DATE: "DATE",
     NUMBER: "NUMBER",
-    ARRAY: "NUMBER",
+    ARRAY: "ARRAY",
 };
 module.exports = { VALIDATION_TYPE };

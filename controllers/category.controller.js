@@ -11,7 +11,7 @@ class CategoryController {
     newCategory = async (req, res, next) => {
         const { name, description } = req.body;
         if (!name) {
-            return errror("name", "category name is required", next);
+            return error("name", "category name is required", next);
         }
         try {
             const created = await prisma.category.create({
@@ -69,7 +69,7 @@ class CategoryController {
         const { name, description } = req.body.updateData;
         try {
             const category = await prisma.category.findUnique({
-                where: { id: req.query.categoryId },
+                where: { id: req.params.categoryId },
             });
             if (!category) {
                 return error(
@@ -81,20 +81,17 @@ class CategoryController {
             }
             const updated = await prisma.category.update({
                 where: { id: category.id },
-                data: {
-                    name: name || null,
-                    description: description || null,
-                },
+                data: { name, description },
             });
             return res.json({
                 success: true,
-                data: created,
+                data: updated,
             });
         } catch (e) {
             console.log(e);
             return error(
                 "server",
-                "internal server error when trying to create category",
+                "internal server error when trying to update category",
                 next
             );
         }
@@ -109,7 +106,7 @@ class CategoryController {
     deleteCategory = async (req, res, next) => {
         try {
             const category = await prisma.category.findUnique({
-                where: { id: req.query.categoryId },
+                where: { id: req.params.categoryId },
                 include: {
                     trip: true,
                 },
@@ -140,7 +137,7 @@ class CategoryController {
             console.log(e);
             return error(
                 "server",
-                "internal server error when trying to create category",
+                "internal server error when trying to delete category",
                 next
             );
         }

@@ -56,7 +56,7 @@ router.patch(
 router.patch(
     "/change-banner",
     authenticate,
-    upload.single("profile"),
+    upload.single("banner"),
     updateBanner
 );
 router.get("/me", authenticate, getMe); //get all data about me, include everything

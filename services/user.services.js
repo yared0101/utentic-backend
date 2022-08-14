@@ -30,8 +30,9 @@ class UserServices {
                 },
                 data: updateData,
             });
-            return res.json({ success: true, updateData: updatedUser });
+            return { success: true, updateData: updatedUser };
         } catch (e) {
+            console.log(e);
             return error(
                 "server",
                 "something went wrong updating user, try again later",
@@ -42,6 +43,9 @@ class UserServices {
     };
     getOneUser = async (id, next) => {
         try {
+            if (!id) {
+                return error("user", "please send id", next, 404);
+            }
             const user = await prisma.user.findUnique({
                 where: {
                     id: id,
@@ -57,11 +61,12 @@ class UserServices {
             if (!user) {
                 return error("user", "no user found with this id", next, 404);
             }
-            return res.json({
+            return {
                 success: true,
                 data: user,
-            });
+            };
         } catch (e) {
+            console.log(e);
             return error(
                 "server",
                 "something went wrong in retriving the account informations",
