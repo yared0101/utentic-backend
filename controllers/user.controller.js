@@ -5,6 +5,7 @@ const { prisma } = require("../config");
 const { VALIDATION_TYPE } = require("../config/constants");
 const { getOneUser, updateUser } = require("../services/user.services");
 const { error } = require("../utils");
+const { sendVerificationSms } = require("../utils/sms");
 const { uploadFile } = require("../utils/upload");
 const { validatePhoneNumber, allValidations } = require("../utils/validation");
 class UserController {
@@ -15,60 +16,40 @@ class UserController {
      * @param {import("express").NextFunction} next
      * @returns
      */
-    login = async (req, res, next) => {
+    verifyPin = async (req, res, next) => {
         try {
-            if (
-                !req.body.username &&
-                !req.body.email &&
-                !req.body.phoneNumber
-            ) {
+            if (!req.body.pin) {
                 return error(
-                    "identifier",
-                    "please send username email or phone number",
+                    "pin",
+                    "please send pin sent to your phone number",
                     next
                 );
             }
-            if (!req.body.password) {
-                return error("password", "password can't be empty", next);
-            }
-            const { username, email, phoneNumber, password, keepMeLoggedIn } =
-                req.body;
-            const identifier = [
-                { value: username, key: "username" },
-                { value: email, key: "email" },
-                { value: phoneNumber, key: "phoneNumber" },
-            ].find((elem) => elem.value);
+            const pin = String(req.body.pin);
             const queryResult = await prisma.user.findUnique({
-                where: { [identifier.key]: identifier.value },
-                select: {
-                    password: true,
-                    id: true,
-                },
+                where: { id: res.locals.tempId },
             });
-            const key = identifier.key;
+            const key = "pin";
             if (!queryResult) {
                 return error(key, "Invalid credentials", next);
             }
-            if (queryResult.deleted_status) {
+            if (queryResult.deletedStatus) {
                 return error(key, "account has been deleted", next);
             }
-            const correctPassword = await compare(
-                password,
-                queryResult.password
-            );
+            const correctPassword = await compare(pin, queryResult.password);
             if (!correctPassword) {
-                return error("password", "Invalid credentials", next);
+                return error("pin", "Wrong Code", next);
             }
             const accessToken = sign(
                 {
                     id: queryResult.id,
                 },
-                process.env.ACCESS_KEY,
-                keepMeLoggedIn ? {} : { expiresIn: "10h" }
+                process.env.ACCESS_KEY
             );
             return res.json({
                 accessToken,
                 id: queryResult.id,
+                user: queryResult,
             });
         } catch (e) {
             console.log(e);
@@ -82,56 +63,88 @@ class UserController {
      * @param {import("express").NextFunction} next
      * @returns
      */
-    signUp = async (req, res, next) => {
+    auth = async (req, res, next) => {
         try {
             if (!req.body.phoneNumber) {
                 return error("phoneNumber", "please send phone number", next);
             }
-            if (!req.body.firstName) {
-                return error("firstName", "please send first name", next);
-            }
-            if (!req.body.password) {
-                return error("password", "password can't be empty", next);
-            }
-            const { phoneNumber, firstName, password } = req.body;
-            const [{ success, message, argument }] = allValidations([
+            const [{ success, message, argument, value }] = allValidations([
                 {
                     type: VALIDATION_TYPE.PHONE_NUMBER,
-                    value: phoneNumber,
+                    value: req.body.phoneNumber,
                     argument: "phoneNumber",
                 },
             ]);
+            const phoneNumber = value;
+
             if (!success) {
                 return error(argument, message, next);
             }
             const userExists = await prisma.user.findUnique({
                 where: { phoneNumber },
             });
-            if (userExists) {
-                return error(
-                    "phoneNumber",
-                    "user with the same phone number already exists",
-                    next
-                );
+            if (!userExists) {
+                var newUser = await prisma.user.create({
+                    data: {
+                        phoneNumber,
+                    },
+                });
             }
-            const newUser = await prisma.user.create({
-                data: {
-                    phoneNumber,
-                    firstName,
-                    password: await hash(password, 10),
-                },
-            });
+            const userId = userExists?.id || newUser?.id;
+            if (!userId) {
+                //means user doesn't exist or wasnt created which is a server error
+                throw "huge error";
+            }
             const accessToken = sign(
                 {
-                    id: newUser.id,
+                    tempId: userId,
                 },
-                process.env.ACCESS_KEY,
-                { expiresIn: "7d" }
+                process.env.TEMP_TOKEN_ACCESS_KEY,
+                { expiresIn: "1h" }
             );
-            return res.json({
-                accessToken,
-                id: newUser.id,
+            const code = Math.floor(Math.random() * 100000);
+            await prisma.user.update({
+                where: {
+                    id: userId,
+                },
+                data: {
+                    password: await hash(`${code}`, 10),
+                },
             });
+            await sendVerificationSms(phoneNumber, code);
+            return res.json({
+                tempToken: accessToken,
+            });
+        } catch (e) {
+            console.log(e);
+            return error(
+                "server",
+                "sign up failed please try again",
+                next,
+                500
+            );
+        }
+    };
+    /**
+     *
+     * @param {import("express").Request} req
+     * @param {import("express").Response} res
+     * @param {import("express").NextFunction} next
+     * @returns
+     */
+    resendPin = async (req, res, next) => {
+        try {
+            const code = Math.floor(Math.random() * 100000);
+            const user = await prisma.user.update({
+                where: {
+                    id: res.locals.tempId,
+                },
+                data: {
+                    password: await hash(`${code}`, 10),
+                },
+            });
+            await sendVerificationSms(user.phoneNumber, code);
+            return res.json({ success: true });
         } catch (e) {
             console.log(e);
             return error(
@@ -319,6 +332,7 @@ class UserController {
                 skip: filterSkip,
                 include: {
                     _count: true,
+                    followedCommunities: { take: 3 },
                 },
             });
             return res.json({

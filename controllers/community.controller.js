@@ -161,6 +161,7 @@ class CommunityController {
                     _count: true,
                     bankAccounts: true,
                     creator: true,
+                    followers: { take: 3 },
                 },
             });
             return res.json({

@@ -14,9 +14,10 @@ const { inputCleanUp } = require("../middlewares/validation.middlewares");
 const upload = multer({ dest: "tempFiles/" });
 // const userHandlers = new UserController();
 const {
-    login,
+    auth,
+    resendPin,
+    verifyPin,
     getMe,
-    signUp,
     updatePassword,
     updateSelf,
     getAll,
@@ -33,15 +34,9 @@ const {
 } = UserController;
 
 //#region auth actions
-router.post("/login", login);
-router.post(
-    "/signup",
-    // inputCleanUp(UserScalarFieldEnum), //example of usage, deal with input filters later
-    signUp
-);
-router.post("/forgot-password", login); //send email
-router.post("/verify-otp", login); //send otp
-router.post("/change-forgotten-password", verifyTempToken, login);
+router.post("/verify-pin", verifyTempToken, verifyPin); //login(u get accesstoken here)
+router.post("/auth", auth); //signup(u get temp token here)
+router.post("/resend-pin", verifyTempToken, resendPin); //resend if sending was failure;
 //#endregion
 
 //#region self Actions
@@ -71,10 +66,10 @@ router.post("/book-trip/:tripId", authenticate, bookTrip);
 router.post("/unbook-trip/:tripId", authenticate, unBookTrip);
 
 //#region admin actions
-router.post("/add-user", authenticate, isAdmin, login); //skipped
+// router.post("/add-user", authenticate, isAdmin, login); //skipped
 router.post("/activate-user/:userId", authenticate, isAdmin, activateUser);
 router.delete("/suspend-user/:userId", authenticate, isAdmin, deactivateUser);
 router.delete("/remove-user/:userId", authenticate, isAdmin, removeUser);
-router.patch("/update-user/:userId", authenticate, isAdmin, login); //not allowed hopefully
+// router.patch("/update-user/:userId", authenticate, isAdmin, login); //not allowed hopefully
 //#endregion
 module.exports = router;

@@ -74,13 +74,14 @@ const addTrips = async () => {
             creatorId: true,
         },
     });
+    console.log(communities);
     await prisma.trip.createMany({
         skipDuplicates: true,
         data: Array(20)
             .fill(2)
             .map((_, index) => {
                 const chosenCommunity =
-                    communities[parseInt(Math.random() * 10)];
+                    communities[parseInt(Math.random() * 4)];
                 return {
                     categoryId: categories[parseInt(Math.random() * 4)].id,
                     departure: faker.date.birthdate(),
@@ -119,11 +120,11 @@ const addTrips = async () => {
     });
 };
 const main = async () => {
-    console.log("await addCategories()");
+    // console.log("await addCategories()");
     // await addCategories();
-    console.log("await addUsers()");
+    // console.log("await addUsers()");
     // await addUsers();
-    console.log("await addCommunities()");
+    // console.log("await addCommunities()");
     // await addCommunities();
     console.log("await addTrips()");
     await addTrips();

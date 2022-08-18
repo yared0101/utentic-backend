@@ -75,7 +75,7 @@ const isAdmin = async (_req, res, next) => {
 const verifyTempToken = async (req, res, next) => {
     if (!req.headers.authorization) {
         return error(
-            "tempAccessToken",
+            "tempToken",
             "temporary access token was not sent",
             next,
             401
@@ -85,11 +85,24 @@ const verifyTempToken = async (req, res, next) => {
     let payload;
     try {
         payload = verify(accessToken, env.TEMP_TOKEN_ACCESS_KEY);
-        next();
+        res.locals.tempUser = await prisma.user.findUnique({
+            where: { id: payload.tempId },
+        });
+        res.locals.tempId = payload.tempId;
+        if (!res.locals.tempUser) {
+            return error(
+                "tempToken",
+                "Your account has been permanently removed",
+                next,
+                401
+            );
+        }
+        return next();
     } catch (e) {
+        console.log(e);
         return error(
-            "tempAccessToken",
-            "temp access token has expired, verify OTP again",
+            "tempToken",
+            "session has expired, request code again",
             next,
             401
         );
