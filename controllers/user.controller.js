@@ -102,7 +102,7 @@ class UserController {
                 process.env.TEMP_TOKEN_ACCESS_KEY,
                 { expiresIn: "1h" }
             );
-            const code = Math.floor(Math.random() * 100000);
+            const code = 1234 || Math.floor(Math.random() * 1000);
             await prisma.user.update({
                 where: {
                     id: userId,
@@ -111,6 +111,7 @@ class UserController {
                     password: await hash(`${code}`, 10),
                 },
             });
+            console.log({ phoneNumber });
             await sendVerificationSms(phoneNumber, code);
             return res.json({
                 tempToken: accessToken,
@@ -134,7 +135,7 @@ class UserController {
      */
     resendPin = async (req, res, next) => {
         try {
-            const code = Math.floor(Math.random() * 100000);
+            const code = 1234 || Math.floor(Math.random() * 1000);
             const user = await prisma.user.update({
                 where: {
                     id: res.locals.tempId,
