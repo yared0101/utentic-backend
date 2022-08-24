@@ -152,12 +152,12 @@ class TripController {
                     name,
                     description,
                     destination,
-                    price,
+                    price: Number(price) || 0,
                     meetUpLocation,
                     packageIncludes,
                     activities,
                     categoryId,
-                    discountAmount,
+                    discountAmount: Number(discountAmount) || 0,
                     organizerId,
                     discounted,
                     organizerUserId: res.locals.id,
@@ -185,10 +185,41 @@ class TripController {
      * @returns
      */
     getTrips = async (req, res, next) => {
-        const { organizerId, categoryId, bookedBy, creatorId, limit, skip } =
-            req.query;
+        const {
+            organizerId,
+            categoryId,
+            bookedBy,
+            creatorId,
+            limit,
+            skip,
+            q,
+            upcoming,
+            best_deals,
+        } = req.query;
         let filterLimit = Number(limit) || undefined;
         let filterSkip = Number(skip) || undefined;
+        let addedOrderBy = {};
+        let addedWhere = {};
+        if (upcoming === "true") {
+            addedOrderBy = {
+                ...addedOrderBy,
+                startDate: "desc",
+            };
+            addedWhere = {
+                ...addedWhere,
+                startDate: { gt: new Date() },
+            };
+        }
+        if (best_deals === "true") {
+            addedOrderBy = {
+                ...addedOrderBy,
+                discountAmount: "desc",
+            };
+            addedWhere = {
+                ...addedWhere,
+                discounted: true,
+            };
+        }
         try {
             const trips = await prisma.trip.findMany({
                 where: {
@@ -202,9 +233,25 @@ class TripController {
                           }
                         : {},
                     organizerUserId: creatorId,
+                    // OR: [],
+                    OR: q
+                        ? [
+                              { name: { contains: q, mode: "insensitive" } },
+                              {
+                                  description: {
+                                      contains: q,
+                                      mode: "insensitive",
+                                  },
+                              },
+                          ]
+                        : undefined,
+                    ...addedWhere,
                 },
                 skip: filterSkip,
                 take: filterLimit,
+                orderBy: {
+                    ...addedOrderBy,
+                },
                 include: {
                     _count: true,
                     organizer: true,

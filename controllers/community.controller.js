@@ -125,10 +125,25 @@ class CommunityController {
      * @returns
      */
     getCommunities = async (req, res, next) => {
-        const { creatorId, managerId, tripId, followerId, limit, skip } =
-            req.query;
+        const {
+            creatorId,
+            managerId,
+            tripId,
+            followerId,
+            limit,
+            skip,
+            q,
+            popular,
+        } = req.query;
         let filterLimit = Number(limit) || undefined;
         let filterSkip = Number(skip) || undefined;
+        let addedFiltersOrderBy = {};
+        if (popular === "true") {
+            addedFiltersOrderBy = {
+                ...addedFiltersOrderBy,
+                followers: { _count: "desc" },
+            };
+        }
         try {
             const communities = await prisma.community.findMany({
                 where: {
@@ -139,24 +154,39 @@ class CommunityController {
                                   id: managerId,
                               },
                           }
-                        : {},
+                        : undefined,
                     organizedTrips: tripId
                         ? {
                               some: {
                                   id: tripId,
                               },
                           }
-                        : {},
+                        : undefined,
                     followers: followerId
                         ? {
                               some: {
                                   id: followerId,
                               },
                           }
-                        : {},
+                        : undefined,
+                    OR: q
+                        ? [
+                              { name: { contains: q, mode: "insensitive" } },
+                              {
+                                  communityUsername: {
+                                      contains: q,
+                                      mode: "insensitive",
+                                  },
+                              },
+                              { bio: { contains: q, mode: "insensitive" } },
+                          ]
+                        : undefined,
                 },
                 skip: filterSkip,
                 take: filterLimit,
+                orderBy: {
+                    ...addedFiltersOrderBy,
+                },
                 include: {
                     _count: true,
                     bankAccounts: true,

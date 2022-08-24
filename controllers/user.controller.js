@@ -1,5 +1,4 @@
 const { hash, compare } = require("bcrypt");
-const e = require("express");
 const { sign } = require("jsonwebtoken");
 const { prisma } = require("../config");
 const { VALIDATION_TYPE } = require("../config/constants");
