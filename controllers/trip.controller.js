@@ -191,11 +191,11 @@ class TripController {
         if (upcoming === "true") {
             addedOrderBy = {
                 ...addedOrderBy,
-                startDate: "desc",
+                departure: "desc",
             };
             addedWhere = {
                 ...addedWhere,
-                startDate: { gt: new Date() },
+                departure: { gt: new Date() },
             };
         }
         if (best_deals === "true") {
