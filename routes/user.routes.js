@@ -14,9 +14,9 @@ const { inputCleanUp } = require("../middlewares/validation.middlewares");
 const upload = multer({ dest: "tempFiles/" });
 // const userHandlers = new UserController();
 const {
-    auth,
+    signUp,
     resendPin,
-    verifyPin,
+    login,
     getMe,
     updatePassword,
     updateSelf,
@@ -34,8 +34,8 @@ const {
 } = UserController;
 
 //#region auth actions
-router.post("/verify-pin", verifyTempToken, verifyPin); //login(u get accesstoken here)
-router.post("/auth", auth); //signup(u get temp token here)
+router.post("/login", login); //login(u get accesstoken here)
+router.post("/signup", signUp); //signup(u get temp token here)
 router.post("/resend-pin", verifyTempToken, resendPin); //resend if sending was failure;
 //#endregion
 

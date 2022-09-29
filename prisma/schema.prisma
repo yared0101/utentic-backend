@@ -70,8 +70,6 @@ model Bank {
 model Trip {
   id                  String      @id @default(uuid())
   image               String[]
-  startDate           DateTime
-  endDate             DateTime
   departure           DateTime
   return              DateTime
   name                String

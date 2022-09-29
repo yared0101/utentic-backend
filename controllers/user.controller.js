@@ -15,29 +15,36 @@ class UserController {
      * @param {import("express").NextFunction} next
      * @returns
      */
-    verifyPin = async (req, res, next) => {
+    login = async (req, res, next) => {
         try {
-            if (!req.body.pin) {
+            if (!req.body.password) {
+                return error("password", "please send password", next);
+            }
+            if (!req.body.phoneNumber) {
                 return error(
-                    "pin",
+                    "phoneNumber",
                     "please send pin sent to your phone number",
                     next
                 );
             }
-            const pin = String(req.body.pin);
+            const password = String(req.body.password);
+            const phoneNumber = String(req.body.phoneNumber);
             const queryResult = await prisma.user.findUnique({
-                where: { id: res.locals.tempId },
+                where: { phoneNumber },
             });
-            const key = "pin";
+            const key = "credentials";
             if (!queryResult) {
                 return error(key, "Invalid credentials", next);
             }
             if (queryResult.deletedStatus) {
                 return error(key, "account has been deleted", next);
             }
-            const correctPassword = await compare(pin, queryResult.password);
+            const correctPassword = await compare(
+                password,
+                queryResult.password
+            );
             if (!correctPassword) {
-                return error("pin", "Wrong Code", next);
+                return error(key, "Wrong Code", next);
             }
             const accessToken = sign(
                 {
@@ -62,10 +69,17 @@ class UserController {
      * @param {import("express").NextFunction} next
      * @returns
      */
-    auth = async (req, res, next) => {
+    signUp = async (req, res, next) => {
+        console.log(req.body);
         try {
             if (!req.body.phoneNumber) {
                 return error("phoneNumber", "please send phone number", next);
+            }
+            if (!req.body.password) {
+                return error("phoneNumber", "please send password", next);
+            }
+            if (!req.body.firstName) {
+                return error("firstName", "please send first name", next);
             }
             const [{ success, message, argument, value }] = allValidations([
                 {
@@ -75,45 +89,35 @@ class UserController {
                 },
             ]);
             const phoneNumber = value;
-
+            const { password, firstName, lastName } = req.body;
             if (!success) {
                 return error(argument, message, next);
             }
             const userExists = await prisma.user.findUnique({
                 where: { phoneNumber },
             });
-            if (!userExists) {
-                var newUser = await prisma.user.create({
-                    data: {
-                        phoneNumber,
-                    },
-                });
+            if (userExists) {
+                console.log(userExists);
+                return error("phoneNumber", "user already exists", next, 409);
             }
-            const userId = userExists?.id || newUser?.id;
-            if (!userId) {
-                //means user doesn't exist or wasnt created which is a server error
-                throw "huge error";
-            }
-            const accessToken = sign(
-                {
-                    tempId: userId,
-                },
-                process.env.TEMP_TOKEN_ACCESS_KEY,
-                { expiresIn: "1h" }
-            );
-            const code = 1234 || Math.floor(Math.random() * 1000);
-            await prisma.user.update({
-                where: {
-                    id: userId,
-                },
+            const user = await prisma.user.create({
                 data: {
-                    password: await hash(`${code}`, 10),
+                    phoneNumber,
+                    firstName,
+                    lastName,
+                    password: await hash(password, 10),
                 },
             });
-            console.log({ phoneNumber });
-            await sendVerificationSms(phoneNumber, code);
+            const accessToken = sign(
+                {
+                    tempId: user.id,
+                },
+                process.env.ACCESS_KEY,
+                { expiresIn: "1h" }
+            );
             return res.json({
-                tempToken: accessToken,
+                accessToken: accessToken,
+                user,
             });
         } catch (e) {
             console.log(e);

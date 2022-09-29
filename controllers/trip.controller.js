@@ -14,14 +14,6 @@ class TripController {
      */
     newTrip = async (req, res, next) => {
         const inputFilter = {
-            startDate: {
-                required: true,
-                validate: VALIDATION_TYPE.DATE,
-            },
-            endDate: {
-                required: true,
-                validate: VALIDATION_TYPE.DATE,
-            },
             departure: {
                 required: true,
                 validate: VALIDATION_TYPE.DATE,
@@ -86,8 +78,6 @@ class TripController {
             }
         }
         const {
-            startDate,
-            endDate,
             departure,
             name,
             description,
@@ -146,8 +136,6 @@ class TripController {
             console.log(startDate, endDate, departure, returnDate);
             const trip = await prisma.trip.create({
                 data: {
-                    startDate,
-                    endDate,
                     departure,
                     name,
                     description,
@@ -320,8 +308,6 @@ class TripController {
             return error("updateData", "please send updateData", next);
         }
         const inputFilter = {
-            startDate: { validate: VALIDATION_TYPE.DATE },
-            endDate: { validate: VALIDATION_TYPE.DATE },
             departure: { validate: VALIDATION_TYPE.DATE },
             return: { validate: VALIDATION_TYPE.DATE },
             name: {},
@@ -350,8 +336,6 @@ class TripController {
             }
         }
         const {
-            startDate,
-            endDate,
             departure,
             name,
             description,
@@ -385,8 +369,6 @@ class TripController {
                     id: req.params.tripId,
                 },
                 data: {
-                    startDate,
-                    endDate,
                     departure,
                     name,
                     description,

@@ -3,6 +3,9 @@
     "version": "1.0.0",
     "description": "trip backend",
     "main": "index.js",
+    "prisma": {
+        "seed": "node prisma/seed.js"
+    },
     "scripts": {
         "start": "nodemon app.js",
         "start:prod": "node app.js",
