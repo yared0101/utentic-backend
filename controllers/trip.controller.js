@@ -133,7 +133,7 @@ class TripController {
                 );
             }
             const discounted = Boolean(discountAmount);
-            console.log(startDate, endDate, departure, returnDate);
+            // console.log(startDate, endDate, departure, returnDate);
             const trip = await prisma.trip.create({
                 data: {
                     departure,

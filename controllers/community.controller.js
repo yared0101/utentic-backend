@@ -58,23 +58,38 @@ class CommunityController {
                 return error(argument, "username already exists", next, 409);
             }
         }
+        const prevCom = await prisma.community.findFirst({
+            where: {
+                name: {
+                    equals: name,
+                    mode: "insensitive",
+                },
+            },
+        });
+        if (prevCom) {
+            return error("name", "name already exists", next, 409);
+        }
         let profile = "",
             banner = "";
         try {
-            const profilePath = req.files?.profile[0]?.path;
-            const bannerPath = req.files?.banner[0]?.path;
-            profile = await uploadFile(
-                profilePath,
-                "COMMUNITY",
-                res.locals.id,
-                false
-            );
-            banner = await uploadFile(
-                bannerPath,
-                "COMMUNITY",
-                res.locals.id,
-                true
-            );
+            const profilePath = req.files?.profile?.[0]?.path;
+            const bannerPath = req.files?.banner?.[0]?.path;
+            if (profilePath) {
+                profile = await uploadFile(
+                    profilePath,
+                    "COMMUNITY",
+                    res.locals.id,
+                    false
+                );
+            }
+            if (bannerPath) {
+                banner = await uploadFile(
+                    bannerPath,
+                    "COMMUNITY",
+                    res.locals.id,
+                    true
+                );
+            }
         } catch (e) {
             console.log(e);
             return error(

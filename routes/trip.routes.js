@@ -1,5 +1,5 @@
 const express = require("express");
-const { authenticate } = require("../auth/authenticate");
+const { authenticate, isAdmin } = require("../auth/authenticate");
 const {
     addImages,
     getTrips,
@@ -30,5 +30,17 @@ router.patch(
 router.patch("/remove-image/:tripId", authenticate, tripManager, removeImage);
 router.delete("/disable-trip/:tripId", authenticate, tripManager, activateTrip);
 router.post("/enable-trip/:tripId", authenticate, tripManager, deactivateTrip);
+router.delete(
+    "/admin/disable-trip/:tripId",
+    authenticate,
+    isAdmin,
+    activateTrip
+);
+router.post(
+    "/admin/enable-trip/:tripId",
+    authenticate,
+    isAdmin,
+    deactivateTrip
+);
 
 module.exports = router;

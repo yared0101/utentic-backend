@@ -1,5 +1,5 @@
 const express = require("express");
-const { authenticate } = require("../auth/authenticate");
+const { authenticate, isAdmin } = require("../auth/authenticate");
 const {
     activateCommunity,
     activateTrip,
@@ -83,6 +83,19 @@ router.post(
     authenticate,
     communityCreator,
     removeManagers
+);
+
+router.delete(
+    "/admin/deactivate-community/:communityId",
+    authenticate,
+    isAdmin,
+    deactivateCommunity
+);
+router.post(
+    "/admin/activate-community/:communityId",
+    authenticate,
+    isAdmin,
+    activateCommunity
 );
 
 module.exports = router;
