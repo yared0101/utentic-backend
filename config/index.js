@@ -8,5 +8,12 @@ cloudinary.config({
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+const Amplitude = require("@amplitude/node");
+const client = Amplitude.init(process.env.AMPLITUDE_KEY);
 
-module.exports = { prisma, env: process.env, cloudinary };
+module.exports = {
+    prisma,
+    env: process.env,
+    cloudinary,
+    amplitudeClient: client,
+};

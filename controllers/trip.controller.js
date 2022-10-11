@@ -1,4 +1,4 @@
-const { prisma } = require("../config");
+const { prisma, amplitudeClient } = require("../config");
 const { VALIDATION_TYPE } = require("../config/constants");
 const { error } = require("../utils");
 const { uploadFile } = require("../utils/upload");
@@ -152,6 +152,11 @@ class TripController {
                     return: returnDate,
                 },
             });
+            amplitudeClient.logEvent({
+                event_type: "trip_creation",
+                user_id: res.locals.user.phoneNumber,
+                ip: "127.0.0.1",
+            });
             return res.json({
                 success: true,
                 data: trip,
@@ -246,6 +251,11 @@ class TripController {
                     organizer_user: true,
                     category: true,
                 },
+            });
+            amplitudeClient.logEvent({
+                event_type: "get_trips",
+                user_id: res.locals.user.phoneNumber,
+                ip: "127.0.0.1",
             });
             return res.json({
                 success: true,

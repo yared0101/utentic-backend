@@ -1,6 +1,6 @@
 const { hash, compare } = require("bcrypt");
 const { sign } = require("jsonwebtoken");
-const { prisma } = require("../config");
+const { prisma, amplitudeClient } = require("../config");
 const { VALIDATION_TYPE } = require("../config/constants");
 const { getOneUser, updateUser } = require("../services/user.services");
 const { error } = require("../utils");
@@ -385,11 +385,18 @@ class UserController {
                     },
                 },
             });
+            const data = await amplitudeClient.logEvent({
+                event_type: "join_community",
+                user_id: res.locals.user.phoneNumber,
+                ip: "127.0.0.1",
+            });
+            console.log("here", data);
             return res.json({
                 success: true,
                 data: updatedUser,
             });
         } catch (e) {
+            console.log(e);
             return error("server", "something went wrong", next, 500);
         }
     };
@@ -461,6 +468,11 @@ class UserController {
                 where: { id: res.locals.id },
                 data: { bookedTrips: { connect: { id: trip.id } } },
             });
+            amplitudeClient.logEvent({
+                event_type: "book_trip",
+                user_id: res.locals.user.phoneNumber,
+                ip: "127.0.0.1",
+            });
             return res.json({ success: true });
         } catch (e) {
             return error("server", "something went wrong", next, 500);
@@ -484,6 +496,11 @@ class UserController {
             await prisma.user.update({
                 where: { id: res.locals.id },
                 data: { bookedTrips: { disconnect: { id: trip.id } } },
+            });
+            amplitudeClient.logEvent({
+                event_type: "unbook_trip",
+                user_id: res.locals.user.phoneNumber,
+                ip: "127.0.0.1",
             });
             return res.json({ success: true });
         } catch (e) {
