@@ -92,6 +92,14 @@ class TripController {
         } = req.body;
         const returnDate = req.body.return;
         try {
+            if (!categoryId) {
+                return error(
+                    "categoryId",
+                    "please send category Id",
+                    next,
+                    404
+                );
+            }
             const category = await prisma.category.findUnique({
                 where: {
                     id: categoryId,
@@ -279,6 +287,9 @@ class TripController {
      */
     getWithId = async (req, res, next) => {
         try {
+            if (!req.params.tripId) {
+                return error("tripId", "please send trip Id", next, 404);
+            }
             const trip = await prisma.trip.findUnique({
                 where: {
                     id: req.params.tripId,
@@ -316,6 +327,9 @@ class TripController {
     updateTrip = async (req, res, next) => {
         if (!req.body.updateData) {
             return error("updateData", "please send updateData", next);
+        }
+        if (!req.params.tripId) {
+            return error("tripId", "please send trip Id", next, 404);
         }
         const inputFilter = {
             departure: { validate: VALIDATION_TYPE.DATE },
@@ -451,6 +465,9 @@ class TripController {
     removeImage = async (req, res, next) => {
         try {
             const { index } = req.body;
+            if (!req.params.tripId) {
+                return error("tripId", "please send trip Id", next, 404);
+            }
             const trip = await prisma.trip.findUnique({
                 where: {
                     id: req.params.tripId,

@@ -68,6 +68,14 @@ class CategoryController {
         }
         const { name, description } = req.body.updateData;
         try {
+            if (!req.params.categoryId) {
+                return error(
+                    "categoryId",
+                    "please send category Id",
+                    next,
+                    404
+                );
+            }
             const category = await prisma.category.findUnique({
                 where: { id: req.params.categoryId },
             });
@@ -105,6 +113,14 @@ class CategoryController {
      */
     deleteCategory = async (req, res, next) => {
         try {
+            if (!req.params.categoryId) {
+                return error(
+                    "categoryId",
+                    "please send category Id",
+                    next,
+                    404
+                );
+            }
             const category = await prisma.category.findUnique({
                 where: { id: req.params.categoryId },
                 include: {

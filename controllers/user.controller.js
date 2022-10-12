@@ -362,6 +362,14 @@ class UserController {
      */
     followCommunity = async (req, res, next) => {
         try {
+            if (!req.params.communityId) {
+                return error(
+                    "communityId",
+                    "please send community Id",
+                    next,
+                    404
+                );
+            }
             const community = await prisma.community.findUnique({
                 where: { id: req.params.communityId },
             });
@@ -409,6 +417,14 @@ class UserController {
      */
     unFollowCommunity = async (req, res, next) => {
         try {
+            if (!req.params.communityId) {
+                return error(
+                    "communityId",
+                    "please send community Id",
+                    next,
+                    404
+                );
+            }
             const community = await prisma.community.findUnique({
                 where: { id: req.params.communityId },
             });
@@ -458,6 +474,9 @@ class UserController {
      */
     bookTrip = async (req, res, next) => {
         try {
+            if (!req.params.tripId) {
+                return error("tripId", "please send trip Id", next, 404);
+            }
             const trip = await prisma.trip.findUnique({
                 where: { id: req.params.tripId },
             });
@@ -487,6 +506,9 @@ class UserController {
      */
     unBookTrip = async (req, res, next) => {
         try {
+            if (!req.params.tripId) {
+                return error("tripId", "please send trip Id", next, 404);
+            }
             const trip = await prisma.trip.findUnique({
                 where: { id: req.params.tripId },
             });
@@ -516,6 +538,9 @@ class UserController {
      */
     activateUser = async (req, res, next) => {
         try {
+            if (!req.params.tripId) {
+                return error("tripId", "please send trip Id", next, 404);
+            }
             const user = await prisma.user.findUnique({
                 where: { id: req.params.userId },
             });
@@ -540,6 +565,9 @@ class UserController {
      */
     deactivateUser = async (req, res, next) => {
         try {
+            if (!req.params.tripId) {
+                return error("tripId", "please send trip Id", next, 404);
+            }
             const user = await prisma.user.findUnique({
                 where: { id: req.params.userId },
             });
@@ -564,6 +592,9 @@ class UserController {
      */
     removeUser = async (req, res, next) => {
         try {
+            if (!req.params.userId) {
+                return error("userId", "please send user Id", next, 404);
+            }
             const user = await prisma.user.findUnique({
                 where: { id: req.params.userId },
             });

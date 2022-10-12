@@ -241,6 +241,14 @@ class CommunityController {
      */
     getWithId = async (req, res, next) => {
         try {
+            if (!req.params.communityId) {
+                return error(
+                    "communityId",
+                    "please send community Id",
+                    next,
+                    404
+                );
+            }
             const community = await prisma.community.findUnique({
                 where: {
                     id: req.params.communityId,
@@ -290,6 +298,9 @@ class CommunityController {
         const inputBanks = banks
             ?.filter((elem) => elem.name && elem.number)
             ?.map((elem) => ({ name: elem.name, number: elem.number }));
+        if (!req.params.communityId) {
+            return error("communityId", "please send community Id", next, 404);
+        }
         const communityBeforeUpdate = await prisma.community.findUnique({
             where: {
                 id: req.params.communityId,
