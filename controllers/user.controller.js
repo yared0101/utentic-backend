@@ -538,8 +538,8 @@ class UserController {
      */
     activateUser = async (req, res, next) => {
         try {
-            if (!req.params.tripId) {
-                return error("tripId", "please send trip Id", next, 404);
+            if (!req.params.userId) {
+                return error("userId", "please send user Id", next, 404);
             }
             const user = await prisma.user.findUnique({
                 where: { id: req.params.userId },
@@ -565,8 +565,8 @@ class UserController {
      */
     deactivateUser = async (req, res, next) => {
         try {
-            if (!req.params.tripId) {
-                return error("tripId", "please send trip Id", next, 404);
+            if (!req.params.userId) {
+                return error("userId", "please send user Id", next, 404);
             }
             const user = await prisma.user.findUnique({
                 where: { id: req.params.userId },
