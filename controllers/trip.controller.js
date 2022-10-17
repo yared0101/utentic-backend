@@ -224,6 +224,7 @@ class TripController {
         try {
             const trips = await prisma.trip.findMany({
                 where: {
+                    deletedStatus: false,
                     organizerId: organizerId,
                     categoryId: categoryId,
                     bookedBy: bookedBy
@@ -260,6 +261,9 @@ class TripController {
                     category: true,
                 },
             });
+            const metaCount = await prisma.trip.count({
+                where: { deletedStatus: false },
+            });
             amplitudeClient.logEvent({
                 event_type: "get_trips",
                 user_id: res.locals.user.phoneNumber,
@@ -268,6 +272,9 @@ class TripController {
             return res.json({
                 success: true,
                 data: trips,
+                meta: {
+                    total: metaCount,
+                },
             });
         } catch (e) {
             console.log(e);

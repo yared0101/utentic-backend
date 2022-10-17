@@ -168,6 +168,7 @@ class CommunityController {
             const communities = await prisma.community.findMany({
                 where: {
                     creatorId: creatorId,
+                    deletedStatus: false,
                     managers: managerId
                         ? {
                               some: {
@@ -219,9 +220,17 @@ class CommunityController {
                 user_id: res.locals.user.phoneNumber,
                 ip: "127.0.0.1",
             });
+            const metaCount = await prisma.community.count({
+                where: {
+                    deletedStatus: false,
+                },
+            });
             return res.json({
                 success: true,
                 data: communities,
+                meta: {
+                    total: metaCount,
+                },
             });
         } catch (e) {
             console.log(e);

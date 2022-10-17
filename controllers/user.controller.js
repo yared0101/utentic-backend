@@ -317,6 +317,7 @@ class UserController {
         try {
             const users = await prisma.user.findMany({
                 where: {
+                    deletedStatus: false,
                     followedCommunities: communityId
                         ? {
                               some: {
@@ -339,9 +340,15 @@ class UserController {
                     followedCommunities: { take: 3 },
                 },
             });
+            const metaCount = await prisma.user.count({
+                where: { deletedStatus: false },
+            });
             return res.json({
                 success: true,
                 data: users,
+                meta: {
+                    total: metaCount,
+                },
             });
         } catch (e) {
             console.log(e);
