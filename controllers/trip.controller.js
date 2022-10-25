@@ -196,11 +196,13 @@ class TripController {
             q,
             upcoming,
             best_deals,
+            detail
         } = req.query;
         let filterLimit = Number(limit) || undefined;
         let filterSkip = Number(skip) || undefined;
         let addedOrderBy = {};
         let addedWhere = {};
+        let addedInclude = {};
         if (upcoming === "true") {
             addedOrderBy = {
                 ...addedOrderBy,
@@ -210,6 +212,11 @@ class TripController {
                 ...addedWhere,
                 departure: { gt: new Date() },
             };
+        }
+        if(detail==='true'){
+            addedInclude = {
+                bookedBy:true,
+            }
         }
         if (best_deals === "true") {
             addedOrderBy = {
@@ -259,6 +266,7 @@ class TripController {
                     organizer: true,
                     organizer_user: true,
                     category: true,
+                    ...addedInclude,
                 },
             });
             const metaCount = await prisma.trip.count({
