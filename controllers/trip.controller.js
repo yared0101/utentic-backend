@@ -216,6 +216,7 @@ class TripController {
         if(detail==='true'){
             addedInclude = {
                 bookedBy:true,
+                organizer:true
             }
         }
         if (best_deals === "true") {
