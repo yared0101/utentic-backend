@@ -120,12 +120,12 @@ const addTrips = async () => {
     });
 };
 const main = async () => {
-    // console.log("await addCategories()");
-    // await addCategories();
-    // console.log("await addUsers()");
-    // await addUsers();
-    // console.log("await addCommunities()");
-    // await addCommunities();
+    console.log("await addCategories()");
+    await addCategories();
+    console.log("await addUsers()");
+    await addUsers();
+    console.log("await addCommunities()");
+    await addCommunities();
     console.log("await addTrips()");
     await addTrips();
 };
