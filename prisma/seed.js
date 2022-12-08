@@ -127,6 +127,20 @@ const main = async () => {
     console.log("await addTrips()");
     await addTrips();
 };
-main()
+const removeSeedDataExceptAdmin = async () => {
+    console.log("remove trips");
+    await prisma.trip.deleteMany();
+    console.log("remove communities");
+    await prisma.community.deleteMany();
+    console.log("remove users");
+    await prisma.user.deleteMany({
+        where: {
+            isAdmin: false,
+        },
+    });
+    console.log("remove category");
+    await prisma.category.deleteMany();
+};
+removeSeedDataExceptAdmin()
     .catch((e) => console.log(e))
     .then(() => console.log("done"));
