@@ -96,14 +96,12 @@ const addTrips = async () => {
                     organizerId: chosenCommunity.id,
                     organizerUserId: chosenCommunity.creatorId,
                     return: faker.date.birthdate(),
-                    startDate: faker.date.birthdate(),
                     activities: faker.helpers.arrayElements(
                         Array(10)
                             .fill(2)
                             .map(() => faker.random.word())
                     ),
                     description: faker.lorem.sentence(),
-                    endDate: faker.date.birthdate(),
                     image: faker.helpers.arrayElements(
                         Array(10)
                             .fill(2)
@@ -120,12 +118,12 @@ const addTrips = async () => {
     });
 };
 const main = async () => {
-    console.log("await addCategories()");
-    await addCategories();
-    console.log("await addUsers()");
-    await addUsers();
-    console.log("await addCommunities()");
-    await addCommunities();
+    // console.log("await addCategories()");
+    // await addCategories();
+    // console.log("await addUsers()");
+    // await addUsers();
+    // console.log("await addCommunities()");
+    // await addCommunities();
     console.log("await addTrips()");
     await addTrips();
 };
