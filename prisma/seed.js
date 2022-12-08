@@ -130,6 +130,8 @@ const main = async () => {
 const removeSeedDataExceptAdmin = async () => {
     console.log("remove trips");
     await prisma.trip.deleteMany();
+    console.log("remove banks");
+    await prisma.bank.deleteMany();
     console.log("remove communities");
     await prisma.community.deleteMany();
     console.log("remove users");
